@@ -19,7 +19,7 @@ public class middleware {
 
     public middleware() {
         try {
-            //创建服务端套接字，之后等待客户端连接
+            //在本机8888端口创建套接字，等待客户端连接
             serversocket = new ServerSocket(8888);
             while (!serversocket.isClosed()) {
                 Socket acceptedSocket_tmp = serversocket.accept();
@@ -55,8 +55,7 @@ public class middleware {
         public ReceiveRunnable(Socket s) throws IOException {
             this.mySocket = s;
             //客户端接收服务端发送的数据的缓冲区
-            dataInput = new DataInputStream(
-                    s.getInputStream());
+            dataInput = new DataInputStream(s.getInputStream());
             dataOutPut = new DataOutputStream(mySocket.getOutputStream());
         }
 
@@ -64,7 +63,7 @@ public class middleware {
          * -判断socket是否还在连接
          * @return
          */
-        public Boolean isSockedClosed(){
+        public Boolean isSockedClosed() {
             return mySocket.isClosed();
         }
 
@@ -91,10 +90,13 @@ public class middleware {
                     while (len < size) {
                         len += dataInput.read(data, len, size - len);
                     }
+                    //获取消息
                     MyMessage message = analysis_receiveData(data);
                     sender_name = message.getSenderName();
                     message_type = message.getMessage_type();
+                    //判断消息类型做不同处理
                     if (message_type.equals("consumer_ask")) {
+                        //consumer连接
                         consumer_hashMap.put(sender_name, this);
                         System.out.println(sender_name + "_consumer已连接");
                         send_clashMessage();
@@ -113,37 +115,32 @@ public class middleware {
                             }
                         }).start();
                         continue;
-                    }
-                    else if(message_type.equals("producer_send_database")){
+                    } else if (message_type.equals("producer_send_database")) {
                         Object o = operateDataBase(message);
-                        if(o instanceof Integer){
+                        if (o instanceof Integer) {
                             int value = ((Integer) o).intValue();
                             System.out.println(value);
-                        }
-                        else {
+                        } else {
                             ResultSet rs = (ResultSet) o;
                             ResultSetMetaData resultSetMetaData = rs.getMetaData();
                             int ColumnCount = resultSetMetaData.getColumnCount();
                             while (rs.next()) {
                                 for (int i = 0; i < ColumnCount; i++) {
-                                    String s = rs.getString(1+i);
-                                    System.out.print(s+",");
+                                    String s = rs.getString(1 + i);
+                                    System.out.print(s + ",");
                                 }
                                 System.out.println();
                             }
                         }
-                    }
-                    else if(message_type.equals("consumer_topic")){
+                    } else if (message_type.equals("consumer_topic")) {
                         getTopic(message);
-                    }
-                    else if(message_type.equals("producer_topic")){
+                    } else if (message_type.equals("producer_topic")) {
                         String object = message.getMessage_content();
-                        File file = new File("src\\txt\\好友\\"+object+"的topic注册列表.txt");
+                        File file = new File("src\\txt\\好友\\" + object + "的topic注册列表.txt");
                         file.createNewFile();
-                    }
-                    else if (message_type.equals("producer_topic_update")) {
+                    } else if (message_type.equals("producer_topic_update")) {
                         File file = new File("src\\txt\\好友\\" + sender_name + "的topic注册列表.txt");
-                        if(!file.exists()){
+                        if (!file.exists()) {
                             file.createNewFile();
                         }
                         FileInputStream fileInputStream = new FileInputStream(file);
@@ -151,16 +148,16 @@ public class middleware {
                         BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
                         String text_line;
                         while ((text_line = bufferedReader.readLine()) != null) {
-                            System.out.println( text_line);
-                            if (consumer_hashMap.containsKey(text_line)){
-                                consumer_hashMap.get(text_line).sendMessage(new MyMessage(sender_name,"producer_message",message.getMessage_content()));
-                            }else {
+                            System.out.println(text_line);
+                            if (consumer_hashMap.containsKey(text_line)) {
+                                consumer_hashMap.get(text_line).sendMessage(new MyMessage(sender_name, "producer_message", message.getMessage_content()));
+                            } else {
                                 //如果consumer不在线 将其存入到缓存之中
-                                File file1 = new File("src\\txt\\缓存\\"+text_line+"_缓存.txt");
-                                if(!file1.exists()){
+                                File file1 = new File("src\\txt\\缓存\\" + text_line + "_缓存.txt");
+                                if (!file1.exists()) {
                                     file1.createNewFile();
                                 }
-                                FileOutputStream clash_fileOutputStream=new FileOutputStream(file1,true);//每次接着原来的文件写
+                                FileOutputStream clash_fileOutputStream = new FileOutputStream(file1, true);//每次接着原来的文件写
                                 clash_fileOutputStream.write(message.getBytes());
                                 clash_fileOutputStream.write("\r\n".getBytes());
                                 clash_fileOutputStream.flush();
@@ -182,21 +179,21 @@ public class middleware {
         /**
          * 一旦consumer建立连接之后 将其缓存的消息全部发送过去
          */
-        private void send_clashMessage(){
-            File senderCache = new File("src\\txt\\缓存\\"+sender_name+"_缓存.txt");
+        private void send_clashMessage() {
+            File senderCache = new File("src\\txt\\缓存\\" + sender_name + "_缓存.txt");
             System.out.println("处理缓存消息");
-            if(senderCache.exists()){
+            if (senderCache.exists()) {
                 try {
-                    FileInputStream  fileInputStream = new FileInputStream(senderCache);
+                    FileInputStream fileInputStream = new FileInputStream(senderCache);
                     InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
                     BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
                     String text = null;
-                    while((text = bufferedReader.readLine()) != null){
-                        System.out.println("text:"+text);
+                    while ((text = bufferedReader.readLine()) != null) {
+                        System.out.println("text:" + text);
                         MyMessage thisMessage = analysis_StringMessage(text);
                         sendMessage(thisMessage);
                     }
-                    FileWriter fileWriter =new FileWriter(senderCache);
+                    FileWriter fileWriter = new FileWriter(senderCache);
                     fileWriter.write("");
                     fileWriter.flush();
                     fileWriter.close();
@@ -205,33 +202,34 @@ public class middleware {
                 }
             }
         }
+
         /**
          * 处理发来的topic
+         *
          * @param message 发来的topic
          */
 
-        private void getTopic(MyMessage message){
+        private void getTopic(MyMessage message) {
             String sender = message.getSenderName();
             String object = message.getMessage_content();
-            System.out.println("sender:"+sender);
-            System.out.println("object:"+object);
-            boolean b=true;
-            File file = new File("src\\txt\\好友\\"+object+"的topic注册列表.txt");
-            if(!file.exists()){
+            System.out.println("sender:" + sender);
+            System.out.println("object:" + object);
+            boolean b = true;
+            File file = new File("src\\txt\\好友\\" + object + "的topic注册列表.txt");
+            if (!file.exists()) {
                 b = false;
                 sendMessage(new MyMessage("model.middleware", "error", "no topic"));
-            }
-            else {
+            } else {
                 try {
-                    FileInputStream  fileInputStream = new FileInputStream(file);
+                    FileInputStream fileInputStream = new FileInputStream(file);
                     InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
                     BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
                     String text = null;
-                    while((text = bufferedReader.readLine()) != null){
-                        System.out.println("text:"+text);
-                        if(text.equals(sender)){
-                            System.out.println(object+"已和"+sender+"注册了关系");
-                            b=false;
+                    while ((text = bufferedReader.readLine()) != null) {
+                        System.out.println("text:" + text);
+                        if (text.equals(sender)) {
+                            System.out.println(object + "已和" + sender + "注册了关系");
+                            b = false;
                             break;
                         }
                     }
@@ -239,11 +237,11 @@ public class middleware {
                     e.printStackTrace();
                 }
             }
-            if(b){
+            if (b) {
                 try {
-                    String s = sender +"\r\n";
-                    byte[] buff=s.getBytes();
-                    FileOutputStream o=new FileOutputStream(file,true);
+                    String s = sender + "\r\n";
+                    byte[] buff = s.getBytes();
+                    FileOutputStream o = new FileOutputStream(file, true);
                     o.write(buff);
                     o.flush();
                     o.close();
@@ -318,17 +316,18 @@ public class middleware {
 
     /**
      * 分析并运行MyMessage里要求的函数
+     *
      * @param message 传入的信息
      * @return 运行函数得到的结果
      */
     //@TODO 陈文韬
-    private Object operateDataBase(MyMessage message){
+    private Object operateDataBase(MyMessage message) {
         String message_content = message.getMessage_content();
         String[] operate = message_content.split("%");
         String[] funcation = operate[1].split("\\(|\\)|,");
         ResultSet resultSet;
         int answer;
-        switch (funcation[0]){
+        switch (funcation[0]) {
             case "executeDelete":
                 answer = dbBean.executeDelete(funcation[1], funcation[2], funcation[3]);
                 return answer;

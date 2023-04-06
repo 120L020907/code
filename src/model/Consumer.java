@@ -179,7 +179,7 @@ public class Consumer {
     }
 
     public static void main(String[] args) {
-        Consumer consumer1=new Consumer("ConsumerGR", "172.20.40.192", 8888);
+        Consumer consumer1=new Consumer("ConsumerGR", "172.23.80.1", 8888);
         consumer1.receiveTopic("话题gr");
 //        try {
 //            Thread.sleep(10000);
