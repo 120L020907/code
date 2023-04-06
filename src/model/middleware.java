@@ -3,6 +3,7 @@ package model;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -79,8 +80,12 @@ public class middleware {
                     try {
                         //接收数据
                         size = dataInput.readInt();//获取服务端发送的数据的大小
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    } catch (EOFException e) {
+                        //e.printStackTrace();
+                        //consumer_hashMap.remove(sender_name);
+                        mySocket.close();
+                    } catch (SocketException e) {
+                        //e.printStackTrace();
                         consumer_hashMap.remove(sender_name);
                         mySocket.close();
                     }
@@ -90,78 +95,80 @@ public class middleware {
                     while (len < size) {
                         len += dataInput.read(data, len, size - len);
                     }
-                    //获取消息
-                    MyMessage message = analysis_receiveData(data);
-                    sender_name = message.getSenderName();
-                    message_type = message.getMessage_type();
-                    //判断消息类型做不同处理
-                    if (message_type.equals("consumer_ask")) {
-                        //consumer连接
-                        consumer_hashMap.put(sender_name, this);
-                        System.out.println(sender_name + "_consumer已连接");
-                        send_clashMessage();
-                        //为了保持连接 所以每次发一个小的字符串
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                while (send_little_flag && !mySocket.isClosed()) {
-                                    sendMessage(new MyMessage(sender_name + "littleString", "", ""));
-                                    try {
-                                        Thread.sleep(2000);
-                                    } catch (InterruptedException e) {
-                                        e.printStackTrace();
+                    if(data.length>=1){
+                        //获取消息
+                        MyMessage message = analysis_receiveData(data);
+                        sender_name = message.getSenderName();
+                        message_type = message.getMessage_type();
+                        //判断消息类型做不同处理
+                        if (message_type.equals("consumer_ask")) {
+                            //consumer连接
+                            consumer_hashMap.put(sender_name, this);
+                            System.out.println(sender_name + "_consumer已连接");
+                            send_clashMessage();
+                            //为了保持连接 所以每次发一个小的字符串
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    while (send_little_flag && !mySocket.isClosed()) {
+                                        sendMessage(new MyMessage(sender_name + "littleString", "", ""));
+                                        try {
+                                            Thread.sleep(2000);
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
                                     }
                                 }
-                            }
-                        }).start();
-                        continue;
-                    } else if (message_type.equals("producer_send_database")) {
-                        Object o = operateDataBase(message);
-                        if (o instanceof Integer) {
-                            int value = ((Integer) o).intValue();
-                            System.out.println(value);
-                        } else {
-                            ResultSet rs = (ResultSet) o;
-                            ResultSetMetaData resultSetMetaData = rs.getMetaData();
-                            int ColumnCount = resultSetMetaData.getColumnCount();
-                            while (rs.next()) {
-                                for (int i = 0; i < ColumnCount; i++) {
-                                    String s = rs.getString(1 + i);
-                                    System.out.print(s + ",");
-                                }
-                                System.out.println();
-                            }
-                        }
-                    } else if (message_type.equals("consumer_topic")) {
-                        getTopic(message);
-                    } else if (message_type.equals("producer_topic")) {
-                        String object = message.getMessage_content();
-                        File file = new File("src\\txt\\好友\\" + object + "的topic注册列表.txt");
-                        file.createNewFile();
-                    } else if (message_type.equals("producer_topic_update")) {
-                        File file = new File("src\\txt\\好友\\" + sender_name + "的topic注册列表.txt");
-                        if (!file.exists()) {
-                            file.createNewFile();
-                        }
-                        FileInputStream fileInputStream = new FileInputStream(file);
-                        InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
-                        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-                        String text_line;
-                        while ((text_line = bufferedReader.readLine()) != null) {
-                            System.out.println(text_line);
-                            if (consumer_hashMap.containsKey(text_line)) {
-                                consumer_hashMap.get(text_line).sendMessage(new MyMessage(sender_name, "producer_message", message.getMessage_content()));
+                            }).start();
+                            continue;
+                        } else if (message_type.equals("producer_send_database")) {
+                            Object o = operateDataBase(message);
+                            if (o instanceof Integer) {
+                                int value = ((Integer) o).intValue();
+                                System.out.println(value);
                             } else {
-                                //如果consumer不在线 将其存入到缓存之中
-                                File file1 = new File("src\\txt\\缓存\\" + text_line + "_缓存.txt");
-                                if (!file1.exists()) {
-                                    file1.createNewFile();
+                                ResultSet rs = (ResultSet) o;
+                                ResultSetMetaData resultSetMetaData = rs.getMetaData();
+                                int ColumnCount = resultSetMetaData.getColumnCount();
+                                while (rs.next()) {
+                                    for (int i = 0; i < ColumnCount; i++) {
+                                        String s = rs.getString(1 + i);
+                                        System.out.print(s + ",");
+                                    }
+                                    System.out.println();
                                 }
-                                FileOutputStream clash_fileOutputStream = new FileOutputStream(file1, true);//每次接着原来的文件写
-                                clash_fileOutputStream.write(message.getBytes());
-                                clash_fileOutputStream.write("\r\n".getBytes());
-                                clash_fileOutputStream.flush();
-                                clash_fileOutputStream.close();
+                            }
+                        } else if (message_type.equals("consumer_topic")) {
+                            getTopic(message);
+                        } else if (message_type.equals("producer_topic")) {
+                            String object = message.getMessage_content();
+                            File file = new File("src\\txt\\好友\\" + object + "的topic注册列表.txt");
+                            file.createNewFile();
+                        } else if (message_type.equals("producer_topic_update")) {
+                            File file = new File("src\\txt\\好友\\" + sender_name + "的topic注册列表.txt");
+                            if (!file.exists()) {
+                                file.createNewFile();
+                            }
+                            FileInputStream fileInputStream = new FileInputStream(file);
+                            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
+                            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                            String text_line;
+                            while ((text_line = bufferedReader.readLine()) != null) {
+                                System.out.println(text_line);
+                                if (consumer_hashMap.containsKey(text_line)) {
+                                    consumer_hashMap.get(text_line).sendMessage(new MyMessage(sender_name, "producer_message", message.getMessage_content()));
+                                } else {
+                                    //如果consumer不在线 将其存入到缓存之中
+                                    File file1 = new File("src\\txt\\缓存\\" + text_line + "_缓存.txt");
+                                    if (!file1.exists()) {
+                                        file1.createNewFile();
+                                    }
+                                    FileOutputStream clash_fileOutputStream = new FileOutputStream(file1, true);//每次接着原来的文件写
+                                    clash_fileOutputStream.write(message.getBytes());
+                                    clash_fileOutputStream.write("\r\n".getBytes());
+                                    clash_fileOutputStream.flush();
+                                    clash_fileOutputStream.close();
+                                }
                             }
                         }
                     }
