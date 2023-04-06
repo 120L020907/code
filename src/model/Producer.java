@@ -89,6 +89,8 @@ public class Producer {
 //        model.MyMessage message = new model.MyMessage("发送者", "producer_send_database", "你好%executeFindAll(sxz_database_lab3.用户)");
         MyMessage message = new MyMessage("ProducerGR", "producer_topic_update", "你好asdas");
         producer.sendMessage(message);
+        MyMessage message2 = new MyMessage("ProducerGR", "producer_broadcast", "广播消息1");
+        producer.sendMessage(message2);
 //        producer.registerTopic("2222");
     }
 }

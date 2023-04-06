@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -82,11 +83,9 @@ public class middleware {
                         size = dataInput.readInt();//获取服务端发送的数据的大小
                     } catch (EOFException e) {
                         //e.printStackTrace();
-                        //consumer_hashMap.remove(sender_name);
                         mySocket.close();
                     } catch (SocketException e) {
-                        //e.printStackTrace();
-                        consumer_hashMap.remove(sender_name);
+                        consumer_hashMap.remove(sender_name);//consumer下线
                         mySocket.close();
                     }
                     byte[] data = new byte[size];
@@ -95,7 +94,7 @@ public class middleware {
                     while (len < size) {
                         len += dataInput.read(data, len, size - len);
                     }
-                    if(data.length>=1){
+                    if (data.length >= 1) {
                         //获取消息
                         MyMessage message = analysis_receiveData(data);
                         sender_name = message.getSenderName();
@@ -137,6 +136,11 @@ public class middleware {
                                     }
                                     System.out.println();
                                 }
+                            }
+                        }else if(message_type.equals("producer_broadcast")){
+                            for (Map.Entry<String, ReceiveRunnable> entry : consumer_hashMap.entrySet()) {
+                                ReceiveRunnable value = entry.getValue();
+                                value.sendMessage(new MyMessage(sender_name, "producer_message", message.getMessage_content()));
                             }
                         } else if (message_type.equals("consumer_topic")) {
                             getTopic(message);
