@@ -8,7 +8,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -102,6 +101,7 @@ public class middleware {
                         //判断消息类型做不同处理
                         if (message_type.equals("consumer_ask")) {
                             //consumer连接
+                            addConsumer(sender_name);
                             consumer_hashMap.put(sender_name, this);
                             System.out.println(sender_name + "_consumer已连接");
                             send_clashMessage();
@@ -137,14 +137,37 @@ public class middleware {
                                     System.out.println();
                                 }
                             }
-                        }else if(message_type.equals("producer_broadcast")){
-                            for (Map.Entry<String, ReceiveRunnable> entry : consumer_hashMap.entrySet()) {
-                                ReceiveRunnable value = entry.getValue();
-                                value.sendMessage(new MyMessage(sender_name, "producer_message", message.getMessage_content()));
+                        } else if (message_type.equals("producer_broadcast")) {
+                            //全广播
+                            File file = new File("src\\txt\\好友\\注册列表.txt");
+                            if (!file.exists()) {
+                                file.createNewFile();
+                            }
+                            FileInputStream fileInputStream = new FileInputStream(file);
+                            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
+                            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                            String text_line;
+                            while ((text_line = bufferedReader.readLine()) != null) {
+                                System.out.println(text_line);
+                                if (consumer_hashMap.containsKey(text_line)) {
+                                    consumer_hashMap.get(text_line).sendMessage(new MyMessage(sender_name, "producer_message", message.getMessage_content()));
+                                } else {
+                                    //如果consumer不在线 将其存入到缓存之中
+                                    File file1 = new File("src\\txt\\缓存\\" + text_line + "_缓存.txt");
+                                    if (!file1.exists()) {
+                                        file1.createNewFile();
+                                    }
+                                    FileOutputStream clash_fileOutputStream = new FileOutputStream(file1, true);//每次接着原来的文件写
+                                    clash_fileOutputStream.write(message.getBytes());
+                                    clash_fileOutputStream.write("\r\n".getBytes());
+                                    clash_fileOutputStream.flush();
+                                    clash_fileOutputStream.close();
+                                }
                             }
                         } else if (message_type.equals("consumer_topic")) {
                             getTopic(message);
                         } else if (message_type.equals("producer_topic")) {
+                            //Producer注册
                             String object = message.getMessage_content();
                             File file = new File("src\\txt\\好友\\" + object + "的topic注册列表.txt");
                             file.createNewFile();
@@ -215,7 +238,7 @@ public class middleware {
         }
 
         /**
-         * 处理发来的topic
+         * 处理consumer发送的获取话题请求
          *
          * @param message 发来的topic
          */
@@ -325,13 +348,41 @@ public class middleware {
         }
     }
 
+    private void addConsumer(String targetString) {
+        String filePath = "src\\txt\\好友\\注册列表.txt";  // 文件路径
+        // 读取文件内容并判断是否存在目标字符串
+        File file = new File(filePath);
+        boolean isTargetStringExist = false;  // 标识目标字符串是否存在
+        try (FileReader fileReader = new FileReader(file);
+             BufferedReader bufferedReader = new BufferedReader(fileReader)) {
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                if (line.equals(targetString)) {
+                    isTargetStringExist = true;
+                    break;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 如果目标字符串不存在，则将其写入文件末尾
+        if (!isTargetStringExist) {
+            try (FileWriter fileWriter = new FileWriter(file, true);
+                 BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+                bufferedWriter.newLine();  // 先换行
+                bufferedWriter.write(targetString);  // 写入字符串
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     /**
      * 分析并运行MyMessage里要求的函数
      *
      * @param message 传入的信息
      * @return 运行函数得到的结果
      */
-    //@TODO 陈文韬
     private Object operateDataBase(MyMessage message) {
         String message_content = message.getMessage_content();
         String[] operate = message_content.split("%");

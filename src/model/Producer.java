@@ -86,6 +86,7 @@ public class Producer {
     public static void main(String[] args) {
         Producer producer=new Producer( "ProducerGR","172.23.80.1",8888);
         producer.registerTopic("话题gr");
+        producer.registerTopic("话题a");
 //        model.MyMessage message = new model.MyMessage("发送者", "producer_send_database", "你好%executeFindAll(sxz_database_lab3.用户)");
         MyMessage message = new MyMessage("ProducerGR", "producer_topic_update", "你好asdas");
         producer.sendMessage(message);
