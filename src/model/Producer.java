@@ -85,13 +85,15 @@ public class Producer {
 
     public static void main(String[] args) {
         Producer producer=new Producer( "ProducerGR","172.23.80.1",8888);
-        producer.registerTopic("话题gr");
-        producer.registerTopic("话题a");
+//        producer.registerTopic("话题gr");
+//        producer.registerTopic("话题a");
 //        model.MyMessage message = new model.MyMessage("发送者", "producer_send_database", "你好%executeFindAll(sxz_database_lab3.用户)");
-        MyMessage message = new MyMessage("ProducerGR", "producer_topic_update", "你好asdas");
-        producer.sendMessage(message);
-        MyMessage message2 = new MyMessage("ProducerGR", "producer_broadcast", "广播消息1");
-        producer.sendMessage(message2);
+//        MyMessage message = new MyMessage("ProducerGR", "producer_topic_update", "你好asdas");
+//        producer.sendMessage(message);
+//        MyMessage message2 = new MyMessage("ProducerGR", "producer_broadcast", "广播消息1");
+//        producer.sendMessage(message2);
+        MyMessage message3 = new MyMessage("ProducerGR", "producer_queue", "消息队列消息1");
+        producer.sendMessage(message3);
 //        producer.registerTopic("2222");
     }
 }

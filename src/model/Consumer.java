@@ -15,6 +15,8 @@ public class Consumer {
     private Socket sendStringClientSocket = null;
     private Executor executor = Executors.newCachedThreadPool();//线程池;
     private SendString_ReceiveMessage_Runnable sendString_receiveMessage_runnable;
+
+    private MessageQueue<MyMessage> messageQueue;
     /**
      * @param name producer的名字
      * @param host 中间件的连接地址
@@ -44,7 +46,13 @@ public class Consumer {
             super(senderName, "consumer_topic", topic_name);
         }
     }
-
+    private void receiveQueue() {
+        try {
+            executor.execute(new SendString_Runnable(new Socket(host,port),new MyMessage(name,"consumer_queue","")));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     private void receiveTopic(String topicName) {
         try {
             executor.execute(new SendString_Runnable(new Socket(host,port), new Topic(name, topicName)));
@@ -182,6 +190,7 @@ public class Consumer {
         Consumer consumer1=new Consumer("ConsumerGR", "172.23.80.1", 8888);
         consumer1.receiveTopic("话题gr");
         consumer1.receiveTopic("话题a");
+        consumer1.receiveQueue();
 //        try {
 //            Thread.sleep(10000);
 //        } catch (InterruptedException e) {

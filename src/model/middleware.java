@@ -12,11 +12,12 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 public class middleware {
-    private ServerSocket serversocket = null;
-    private Executor executor = Executors.newCachedThreadPool();//线程池;
-    private HashMap<String, ReceiveRunnable> consumer_hashMap = new HashMap();//存储着当前连接着的所有的consumer的socket
-    private DBBean dbBean = new DBBean();
+    private ServerSocket serversocket;
+    private final Executor executor = Executors.newCachedThreadPool();//线程池;
+    private final HashMap<String, ReceiveRunnable> consumer_hashMap = new HashMap();//存储着当前连接着的所有的consumer的socket
+    private final DBBean dbBean = new DBBean();
 
+    MessageQueue<MyMessage> messageQueue = new MessageQueue<>();//消息队列
 
     public middleware() {
         try {
@@ -162,6 +163,18 @@ public class middleware {
                                     clash_fileOutputStream.write("\r\n".getBytes());
                                     clash_fileOutputStream.flush();
                                     clash_fileOutputStream.close();
+                                }
+                            }
+                        } else if (message_type.equals("producer_queue")) {
+                            //向消息队列中添加消息
+                            messageQueue.enqueue(new MyMessage(sender_name, "producer_message", message.getMessage_content()));
+                        } else if (message_type.equals("consumer_queue")) {
+                            //绑定消息队列
+                            while (true) {
+                                try {
+                                    consumer_hashMap.get(sender_name).sendMessage(messageQueue.dequeue());
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
                                 }
                             }
                         } else if (message_type.equals("consumer_topic")) {
