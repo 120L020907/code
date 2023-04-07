@@ -22,11 +22,4 @@ public class MessageQueue<MyMessage> {
         }
         return queue.removeFirst();
     }
-    public synchronized List<MyMessage> getAllMessages() {
-        List<MyMessage> messages = new ArrayList<>();
-        while (!queue.isEmpty()) {
-            messages.add(queue.removeFirst());
-        }
-        return messages;
-    }
 }
