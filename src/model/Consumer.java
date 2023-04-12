@@ -46,6 +46,13 @@ public class Consumer {
             super(senderName, "consumer_topic", topic_name);
         }
     }
+    private void deleteQueue(){
+        try {
+            executor.execute(new SendString_Runnable(new Socket(host,port),new MyMessage(name,"consumer_delete_queue","")));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     private void receiveQueue() {
         try {
             executor.execute(new SendString_Runnable(new Socket(host,port),new MyMessage(name,"consumer_queue","")));
@@ -187,10 +194,11 @@ public class Consumer {
     }
 
     public static void main(String[] args) {
-        Consumer consumer1=new Consumer("ConsumerGR", "172.23.80.1", 8888);
+        Consumer consumer1=new Consumer("ConsumerGR", "172.20.70.236", 8888);
         consumer1.receiveTopic("话题gr");
         consumer1.receiveTopic("话题a");
         consumer1.receiveQueue();
+//      consumer1.deleteQueue();//解除对消息队列的监听
 //        try {
 //            Thread.sleep(10000);
 //        } catch (InterruptedException e) {

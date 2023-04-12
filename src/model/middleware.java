@@ -168,6 +168,8 @@ public class middleware {
                         } else if (message_type.equals("producer_queue")) {
                             //向消息队列中添加消息
                             messageQueue.enqueue(new MyMessage(sender_name, "producer_message", message.getMessage_content()));
+                        }else if(message_type.equals("consumer_delete_queue")) {
+                            messageQueue=new MessageQueue<>();
                         } else if (message_type.equals("consumer_queue")) {
                             //绑定消息队列
                             while (true) {
@@ -312,6 +314,7 @@ public class middleware {
                 dataOutPut.flush();
             } catch (IOException e) {
                 e.printStackTrace();
+                messageQueue=new MessageQueue<>();
             }
         }
 
