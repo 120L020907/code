@@ -194,25 +194,12 @@ public class Consumer {
     }
 
     public static void main(String[] args) {
-        Consumer consumer1=new Consumer("ConsumerGR", "172.20.70.236", 8888);
-        consumer1.receiveTopic("话题gr");
+        Consumer consumer1=new Consumer("ConsumerGR", "172.20.144.193", 8888);
         consumer1.receiveTopic("话题a");
-        consumer1.receiveQueue();
-//      consumer1.deleteQueue();//解除对消息队列的监听
-//        try {
-//            Thread.sleep(10000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        consumer1.closeConnection();
+//        consumer1.receiveQueue();
+//        consumer1.deleteQueue();//解除对消息队列的监听
+//        Consumer consumer2=new Consumer("ConsumerZXP", "172.20.144.193", 8888);
+//        consumer2.receiveQueue();
 
-//        model.Consumer consumer2=new model.Consumer("222222", "172.20.40.192", 8888);
-//        consumer2.receiveTopic("话题1");
-//        try {
-//            Thread.sleep(10000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-        //consumer2.closeConnection();
     }
 }
